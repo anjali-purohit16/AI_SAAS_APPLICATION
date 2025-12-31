@@ -74,46 +74,23 @@ API Keys (Gemini, ClipDrop)
 Environment Variables
 Create a .env file in the root directory and add the following keys:
 
-Code snippet
-
-# Frontend (Vite)
-VITE_CLERK_PUBLISHABLE_KEY=pk_test_...
-VITE_BASE_URL=http://localhost:5000
-
-# Backend
-CLERK_SECRET_KEY=sk_test_...
-GEMINI_API_KEY=...
-CLIPDROP_API_KEY=...
-CLOUDINARY_CLOUD_NAME=...
-CLOUDINARY_API_KEY=...
-CLOUDINARY_API_SECRET=...
-DATABASE_URL=postgresql://...
 Installation
 Clone the repository
-
-Bash
-
-git clone https://github.com/yourusername/promptpilot.git
-cd promptpilot
+ git clone https://github.com/anjali-purohit16/promptpilot.git
+ cd promptpilot
 Install Dependencies
-
-Bash
-
-npm install
+  npm install
 # or if you have separate folders for client/server:
 # cd client && npm install
 # cd ../server && npm install
 Run the Application
-
-Bash
-
 # Run Frontend (in one terminal)
-npm run dev
-
+  npm run dev
 # Run Backend (in another terminal)
-node server.js 
+  node server.js 
+
+  
 📂 Project Structure
-Bash
 
 ├── src/
 │   ├── assets/         # Images and icons
@@ -125,6 +102,7 @@ Bash
 ├── middlewares/        # Custom Auth middleware
 ├── routes/             # API Route definitions
 └── index.css           # Global Tailwind styles
+
 🤝 Contributing
 Contributions are welcome! Please open an issue or submit a pull request for any improvements.
 
