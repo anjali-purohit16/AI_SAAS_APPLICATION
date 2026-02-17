@@ -76,11 +76,11 @@ export const generateBlogTitle = async (req, res) => {
         }
 
         const response = await AI.chat.completions.create({
-          model: "gemini-3-flash-preview",
+          model: "gemini-3-flash",
           messages: [
            { role: "user", content: prompt }],
           temperature: 0.7,
-           max_tokens: 400
+           max_tokens: 200,
           });
 
         const content = response?.choices?.[0]?.message?.content ||"";
