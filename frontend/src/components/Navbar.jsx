@@ -14,7 +14,7 @@ const Navbar = () => {
       <div className='flex items-center gap-4'>
         <img src={assets.logo} alt="logo" className="w-25 sm:w-22 cursor-pointer" onClick={()=>navigate('/')} />
         <div className='flex items-center gap-6'>
-         <h1 className="text-5xl text-red-700 font-bold text-primary">
+         <h1 className="text-3xl text-red-700 font-bold text-primary">
          PromptPilot
         </h1>
         </div>

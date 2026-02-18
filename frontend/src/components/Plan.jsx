@@ -16,7 +16,7 @@ const Plan = () => {
           Find the perfect plan for your content creation needs.
         </p>
       </div>
-       <div className="max-w-3xl mx-auto mt-8">
+       <div className="max-w-xl mx-auto mt-8">
         <PricingTable/>
        </div>
     </div>
