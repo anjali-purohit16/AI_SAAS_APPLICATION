@@ -2,19 +2,42 @@ import React, { useState } from 'react'
 import { dummyCreationData } from '../assets/assets'
 import { useEffect } from 'react'
 import { Gem, Sparkles } from 'lucide-react'
-import {Protect} from '@clerk/clerk-react'
+import {Protect, useAuth} from '@clerk/clerk-react'
 import CreationItem from '../components/CreationItem'
+import axios from 'axios'
+import toast from 'react-hot-toast'
 
+axios.defaults.baseURL = import.meta.env.VITE_BASE_URL; 
 const Dashboard = () => {
   const [creations, setCreations]=useState([])
+  const [loading ,setLoading]=useState(true)
+  const {getToken} = useAuth()
+
+
   const getDashboardData =async()=>{
-  setCreations(dummyCreationData)
+  try{
+   const {data} =await axios.get('/api/user/get-user-creations',{
+    headers :{Authorization:`Bearer ${await getToken()}`}
+   })
+
+   if(data.success){
+    setCreations(data.creations)
+   }
+   else{
+    toast.error(data.message)
+   }
   }
+  catch(error){
+   toast.error(error.message)
+  }
+  setLoading(false)
+}
+  
   useEffect(()=>{
     getDashboardData()
   },[])
   return (
-    <div className='h-full overrflow-y-scroll p-6'>
+    <div className='h-full overflow-y-scroll p-6 bg-linear-to-br  from-red-900 to-black text-white'>
       <div className='flex justify-start gap-4 flex-wrap'>
          <div className='flex justify-between items-center w-72 p-4 px-6 bg-white rounded-xl border border-gray-200'>
          <div className='text-slate-600'>
@@ -43,12 +66,23 @@ const Dashboard = () => {
       </div>
         
      </div>
-        <div className='space-y-3'>
-          <p className='mt-6 mb-4'>Recent Creations</p>
+       {
+        loading ? (
+          <div className='flex justify-center items-center h-96'>
+          <div className='animate-spin rounded-full h-15 w-15 border-4 border-yellow-300 border-t-transparent '>
+            </div>
+        </div>
+        ) 
+        :
+        (
+           <div className='space-y-3'>
+          <p className='mt-6 mb-6 text-yellow-400 text-4xl'>Recent Creations</p>
            {
             creations.map((item)=><CreationItem key={item.id} item={item}/>)
            }
         </div>
+      )
+       }
     </div>
   )
 }

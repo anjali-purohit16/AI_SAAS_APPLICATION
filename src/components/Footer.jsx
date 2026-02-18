@@ -4,14 +4,14 @@ import assets from '../assets/assets'
 const Footer = () => {
   return (
    
-          <footer className="px-6 md:px-16 lg:px-24 xl:px-32 pt-8 w-full text-gray-500">
+          <footer className="px-6 md:px-16 lg:px-24 xl:px-32 w-full bg-linear-to-b from-[#f1f0f0] to-[#fcfbfb] text-gray-500">
               <div className="flex flex-col md:flex-row justify-between w-full gap-10 border-b border-gray-500/30 pb-6">
                   <div className="md:max-w-96">
                     <img className ='h-15' src={assets.logo} alt="hello" />
                       <p className="mt-6 text-sm">
                        Experience the power of AI with PromptPilot.<br/>
-                       Transform user content creation with our suite of premeul AI tools.
-                       articles,generate images,and enhance your worph 
+                       Transform user content creation with our suite of premium AI tools.
+                       articles,generate images,and enhance your work 
                       </p>
                   </div>
                   <div className="flex-1 flex items-start md:justify-end gap-20">
@@ -30,7 +30,7 @@ const Footer = () => {
                               <p>The latest news, articles, and resources, sent to your inbox weekly.</p>
                               <div className="flex items-center gap-2 pt-4">
                                   <input className="border border-gray-500/30 placeholder-gray-500 focus:ring-2 ring-indigo-600 outline-none w-full max-w-64 h-9 rounded px-2" type="email" placeholder="Enter your email" />
-                                  <button className="bg-primary w-24 h-9 text-white rounded">Subscribe</button>
+                                  <button className="bg-primary w-24 h-9 active:scale-75 text-white rounded">Email</button>
                               </div>
                           </div>
                       </div>

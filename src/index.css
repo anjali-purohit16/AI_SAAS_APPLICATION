@@ -5,8 +5,8 @@
   font-family: "Outfit", sans-serif;
 }
 
-@theme{
-  --color-primary:#8A4FFF;
+:root{
+  --color-primary:#660909;
 }
 
 .reset-tw, .reset-tw *{
@@ -14,4 +14,15 @@
 }
 .cl-drawerRoot{
   z-index:10;
+}
+
+
+/* hide scrollbar */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
