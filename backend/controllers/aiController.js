@@ -60,30 +60,24 @@ const content = response.choices[0].message.content;
 
 export const generateBlogTitle = async (req, res) => {
     try {
-        const {userId} = req.auth();
+        const { userId } = req.auth();
         const {prompt} = req.body;
         const plan = req.plan;
         const free_usage = req.free_usage;
 
-           if (!prompt) {
-            return res.json({
-                success:false,
-                message:"Prompt missing"
-            });
-        }
+
         if (plan !== 'premium' && free_usage >=10) {
             return res.json({success: false, message: "Limit reached. Upgrade to continue."})
         }
 
         const response = await AI.chat.completions.create({
-          model: "gemini-3-flash",
-          messages: [
-           { role: "user", content: prompt }],
+          model: "gemini-3-flash-preview",
+          messages: [{ role: "user", content: prompt }
+          ],
           temperature: 0.7,
            max_tokens: 200,
           });
-
-        const content = response?.choices?.[0]?.message?.content ||"";
+        const content = response.choices[0].message.content;
 
         await sql` INSERT INTO creations (user_id, prompt, content, type)
         VALUES (${userId}, ${prompt}, ${content}, 'blog-title')`;
@@ -96,7 +90,7 @@ export const generateBlogTitle = async (req, res) => {
             })
         }
 
-        res.json({success: true,content})
+        res.json({success: true, content})
 
     } catch (error) {
         console.log(error.message)
@@ -107,7 +101,7 @@ export const generateBlogTitle = async (req, res) => {
 
 export const generateImage = async (req, res) => {
     try {
-        const {userId} = req.auth();
+        const { userId } = req.auth();
         const {prompt, publish} = req.body;
         const plan = req.plan;
 
@@ -144,7 +138,7 @@ export const generateImage = async (req, res) => {
 export const removeImageBackground = async (req, res) => {
   try {
 
-    const { userId } = req.auth();
+    const userId = req.userId;
     const image = req.file;
     const plan = req.plan;
 
@@ -194,7 +188,7 @@ export const removeImageBackground = async (req, res) => {
 
 export const removeImageObject = async (req, res) => {
     try {
-        const {userId} = req.auth();
+        const userId = req.userId;
         const {object} = req.body;
         const image = req.file;
         const plan = req.plan;
@@ -226,7 +220,7 @@ export const removeImageObject = async (req, res) => {
 export const reviewResume = async (req, res) => {
     try {
 
-        const { userId } = req.auth();
+        const userId = req.userId;
         const resume = req.file;
         const plan = req.plan;
 
