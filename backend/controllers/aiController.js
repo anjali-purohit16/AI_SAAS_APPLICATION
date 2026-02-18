@@ -99,41 +99,82 @@ export const generateBlogTitle = async (req, res) => {
     }
 }
 
-export const generateImage = async (req, res) => {
-    try {
-        const { userId } = req.auth();
-        const {prompt, publish} = req.body;
-        const plan = req.plan;
+// export const generateImage = async (req, res) => {
+//     try {
+//         const { userId } = req.auth();
+//         const {prompt, publish} = req.body;
+//         const plan = req.plan;
 
-        if (plan !== 'premium') {
-            return res.json({success: false, message: "This feature is only available for premium sbuscriptions."})
-        }
+//         if (plan !== 'premium') {
+//             return res.json({success: false, message: "This feature is only available for premium sbuscriptions."})
+//         }
 
-        const formData = new FormData()
-        formData.append('prompt', prompt)
-        const {data} = await axios.post("https://clipdrop-api.co/text-to-image/v1", formData, {
-            headers: {'x-api-key': process.env.CLIPDROP_API_KEY,},
-            responseType: "arraybuffer",
-        } )
+//         const formData = new FormData()
+//         formData.append('prompt', prompt)
+//         const {data} = await axios.post("https://clipdrop-api.co/text-to-image/v1", formData, {
+//             headers: {'x-api-key': process.env.CLIPDROP_API_KEY,},
+//             responseType: "arraybuffer",
+//         } )
 
-        const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`;
+//         const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`;
 
-        const {secure_url} = await cloudinary.uploader.upload(base64Image)
+//         const {secure_url} = await cloudinary.uploader.upload(base64Image)
 
-        await sql` INSERT INTO creations (user_id, prompt, content, type, publish)
-        VALUES (${userId}, ${prompt}, ${secure_url}, 'image', ${publish ?? false})`;
+//         await sql` INSERT INTO creations (user_id, prompt, content, type, publish)
+//         VALUES (${userId}, ${prompt}, ${secure_url}, 'image', ${publish ?? false})`;
 
-        res.json({success: true,content: secure_url})
+//         res.json({success: true,content: secure_url})
 
-    } catch (error) {
-        console.log(error.message)
-        res.json({success: false, message: error.message})
+//     } catch (error) {
+//         console.log(error.message)
+//         res.json({success: false, message: error.message})
         
+//     }
+// }
+
+
+export const generateImage = async (req, res) => {
+  try {
+    const { userId } = req.auth();
+    const { prompt, publish } = req.body;
+    const plan = req.plan;
+
+    if (plan !== "premium") {
+      return res.json({
+        success: false,
+        message: "This feature is only available for premium subscriptions."
+      });
     }
-}
 
+    // ✅ Gemini image generation call
+    const response = await AI.images.generate({
+      model: "gemini-2.0-flash", // or latest image-capable model
+      prompt: prompt,
+      size: "1024x1024" // optional, can be 512x512, 256x256, etc.
+    });
 
+    // Gemini returns base64 image data
+    const base64Image = response.data[0].b64_json;
+    const imageBuffer = Buffer.from(base64Image, "base64");
 
+    // Upload to Cloudinary
+    const { secure_url } = await cloudinary.uploader.upload(
+      `data:image/png;base64,${imageBuffer.toString("base64")}`,
+      { resource_type: "image" }
+    );
+
+    // Save to DB
+    await sql`
+      INSERT INTO creations (user_id, prompt, content, type, publish)
+      VALUES (${userId}, ${prompt}, ${secure_url}, 'image', ${publish ?? false})
+    `;
+
+    res.json({ success: true, content: secure_url });
+  } catch (error) {
+    console.error("FULL ERROR:", error);
+    res.json({ success: false, message: error.message });
+  }
+};
 
 export const removeImageBackground = async (req, res) => {
   try {
