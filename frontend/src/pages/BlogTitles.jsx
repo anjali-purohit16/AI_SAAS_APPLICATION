@@ -26,7 +26,8 @@ const BlogTitles = () => {
             const prompt = `Generate a blog title for the keyword ${input} in the category ${selectedCategory}`
 
             const {data} = await axios.post('/api/ai/generate-blog-title', {prompt}, {headers: {Authorization: `Bearer ${await getToken()}`}})
-
+               
+            console.log("data", data);
             if (data.success) {
                 setContent(data.content)
                 setInput('');
@@ -93,7 +94,7 @@ const BlogTitles = () => {
                 ) : (
                     <div className='mt-3 h-full text-lg text-white'>
                         <div className='reset-tw'>
-                            <Markdown>{content}</Markdown>
+                            <Markdown>{ typeof content === "string"? content: content?.titles?.join("\n\n")}</Markdown>
                         </div>
                     </div>
                 )

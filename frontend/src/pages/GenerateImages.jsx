@@ -16,26 +16,29 @@ const GenerateImages = () => {
    const[loading, setLoading] = useState(false)  
    const[content , setContent] = useState('')
    
-     const {gettoken}= useAuth()
+     const {getToken}= useAuth()
 
   const onSubmitHandler =async(e)=>{
     e.preventDefault();
  try{
       setLoading(true)
-      const prompt =`Generate an image of${input} in the category of ${selectedStyle}.`
-      const {data }=await axios.post('/api/ai/generate-image', {prompt,publish},{
+      const prompt = `Generate an image of ${input} in ${selectedStyle} style.`
+      console.log ("Prompt:", prompt);
+      const {data } = await axios.post('/api/ai/generate-image', {prompt, publish},{
         headers:{
-          Authorization: `Bearer ${await gettoken()}`
+          Authorization: `Bearer ${await getToken()}`
         }})
+
+     console.log ("data", data);
     if(data.success){
       setContent(data.content)
     }
     else{
-      toast.error("data.Message")
+      toast.error(data.message || "Failed to generate image")
     }
   }
       catch(error){
-        toast.error("Something went wrong.",error.message)
+        toast.error(error.response?.data?.message || error.message);
       }
       setLoading(false)
   }
@@ -70,8 +73,8 @@ const GenerateImages = () => {
         <p className='text-sm'>Make this image Public</p>
        </div>
        <button disabled={loading} className='w-full  active:scale-75 flex justify-center items-center gap-2 bg-linear-to-r from-[#00AD25] to-[#04FF50] text-white px-4 py-2 mt-6 text-sm rounded-lg cursor-pointer'>
-       {loading ? <span className='w-4 h-4 my-1 rounded-full border-2 border-t-transport animate-spin'> "Generating..." </span> :<Image className='w-5'/>} 
-        Generate Title
+       {loading ? <span className='w-4 h-4 my-1 rounded-full border-2 border-t-transparent animate-spin'></span> :<Image className='w-5'/>} 
+        Generate Image
        </button>
       </form>
 

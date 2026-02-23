@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import sql from "../configs/db.js";
 import { clerkClient } from "@clerk/express";
 import axios from "axios";
+import { GoogleGenAI } from "@google/genai";
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
 // import pdf from 'pdf-parse/lib/pdf-parse.js';
@@ -12,10 +13,15 @@ const AI = new OpenAI({
     baseURL: "https://generativelanguage.googleapis.com/v1beta/openai/"
 });
 
+const ai = new GoogleGenAI({
+  apiKey: process.env.GEMINI_API_KEY,
+}); 
+
+
 export const generateArticle = async (req, res) => {
   try {
 
-    const { userId } = req.auth();
+    const userId = req.userId;
     const { prompt, length} = req.body;
     const plan = req.plan;
     const free_usage = req.free_usage;
@@ -59,45 +65,94 @@ const content = response.choices[0].message.content;
 
 
 export const generateBlogTitle = async (req, res) => {
-    try {
-        const { userId } = req.auth();
-        const {prompt} = req.body;
-        const plan = req.plan;
-        const free_usage = req.free_usage;
+  try {
+    const userId = req.userId;;
+    const { prompt } = req.body;
+    const plan = req.plan;
+    const free_usage = req.free_usage;
 
-
-        if (plan !== 'premium' && free_usage >=10) {
-            return res.json({success: false, message: "Limit reached. Upgrade to continue."})
-        }
-
-        const response = await AI.chat.completions.create({
-          model: "gemini-3-flash-preview",
-          messages: [{ role: "user", content: prompt }
-          ],
-          temperature: 0.7,
-           max_tokens: 200,
-          });
-        const content = response.choices[0].message.content;
-
-        await sql` INSERT INTO creations (user_id, prompt, content, type)
-        VALUES (${userId}, ${prompt}, ${content}, 'blog-title')`;
-
-        if (plan !== 'premium') {
-            await clerkClient.users.updateUserMetadata(userId, {
-                privateMetadata:{
-                    free_usage: free_usage + 1
-                }
-            })
-        }
-
-        res.json({success: true, content})
-
-    } catch (error) {
-        console.log(error.message)
-        res.json({success: false, message: error.message})
-        
+    if (!prompt) {
+      return res.status(400).json({
+        success: false,
+        message: "Prompt is required."
+      });
     }
+
+    if (plan !== "premium" && free_usage >= 10) {
+      return res.status(403).json({
+        success: false,
+        message: "Limit reached. Upgrade to continue."
+      });
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: process.env.GEMINI_API_KEY
+    });
+
+    const response = await ai.models.generateContent({
+      model: "gemini-3-flash-preview",
+      contents: `Generate exactly 5 catchy blog titles for: "${prompt}"
+
+Return output strictly in this JSON format:
+{
+  "titles": [
+    "Title 1",
+    "Title 2",
+    "Title 3",
+    "Title 4",
+    "Title 5"
+  ]
 }
+`,
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 200,
+      },
+    });
+
+    const rawText = response.text;
+
+    // 🔥 Safe JSON parsing
+    let parsed;
+    try {
+      parsed = JSON.parse(rawText);
+    } catch (err) {
+      return res.status(500).json({
+        success: false,
+        message: "AI response format error."
+      });
+    }
+
+    const formattedContent = parsed.titles.join("\n\n");
+
+    // ✅ Save STRING in DB (not object)
+    await sql`
+      INSERT INTO creations (user_id, prompt, content, type)
+      VALUES (${userId}, ${prompt}, ${formattedContent}, 'blog-title')
+    `;
+
+    if (plan !== "premium") {
+      await clerkClient.users.updateUserMetadata(userId, {
+        privateMetadata: {
+          free_usage: free_usage + 1
+        }
+      });
+    }
+
+    return res.json({
+      success: true,
+      content: formattedContent
+    });
+
+  } catch (error) {
+    console.log("BLOG TITLE ERROR:", error);
+    return res.status(500).json({
+      success: false,
+      message: error.message
+    });
+  }
+};
+
 
 // export const generateImage = async (req, res) => {
 //     try {
@@ -132,49 +187,40 @@ export const generateBlogTitle = async (req, res) => {
 //     }
 // }
 
-
 export const generateImage = async (req, res) => {
-  try {
-    const { userId } = req.auth();
-    const { prompt, publish } = req.body;
-    const plan = req.plan;
+    try {
+        const {userId} = req.auth();
+        const {prompt, publish} = req.body;
+        const plan = req.plan;
 
-    if (plan !== "premium") {
-      return res.json({
-        success: false,
-        message: "This feature is only available for premium subscriptions."
-      });
+        if (plan !== 'premium') {
+            return res.json({success: false, message: "This feature is only available for premium sbuscriptions."})
+        }
+
+        const formData = new FormData()
+        formData.append('prompt', prompt)
+        const {data} = await axios.post("https://clipdrop-api.co/text-to-image/v1", formData, {
+            headers: {'x-api-key': process.env.CLIPDROP_API_KEY,},
+            responseType: "arraybuffer",
+        } )
+
+        const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`;
+
+        const {secure_url} = await cloudinary.uploader.upload(base64Image)
+
+        await sql` INSERT INTO creations (user_id, prompt, content, type, publish)
+        VALUES (${userId}, ${prompt}, ${secure_url}, 'image', ${publish ?? false})`;
+
+        res.json({success: true,content: secure_url})
+
+    } catch (error) {
+        console.log(error)
+        res.json({success: false, message: error.message})
+        
     }
+}
 
-    // ✅ Gemini image generation call
-    const response = await AI.images.generate({
-      model: "gemini-2.0-flash", // or latest image-capable model
-      prompt: prompt,
-      size: "1024x1024" // optional, can be 512x512, 256x256, etc.
-    });
 
-    // Gemini returns base64 image data
-    const base64Image = response.data[0].b64_json;
-    const imageBuffer = Buffer.from(base64Image, "base64");
-
-    // Upload to Cloudinary
-    const { secure_url } = await cloudinary.uploader.upload(
-      `data:image/png;base64,${imageBuffer.toString("base64")}`,
-      { resource_type: "image" }
-    );
-
-    // Save to DB
-    await sql`
-      INSERT INTO creations (user_id, prompt, content, type, publish)
-      VALUES (${userId}, ${prompt}, ${secure_url}, 'image', ${publish ?? false})
-    `;
-
-    res.json({ success: true, content: secure_url });
-  } catch (error) {
-    console.error("FULL ERROR:", error);
-    res.json({ success: false, message: error.message });
-  }
-};
 
 export const removeImageBackground = async (req, res) => {
   try {
@@ -224,7 +270,6 @@ export const removeImageBackground = async (req, res) => {
     res.json({ success: false, message: error.message });
   }
 };
-
 
 
 export const removeImageObject = async (req, res) => {
