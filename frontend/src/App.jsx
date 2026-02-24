@@ -1,4 +1,3 @@
-import React from 'react'
 import { Route, Routes } from 'react-router-dom'
 import Home from './pages/Home'
 import Layout from './pages/Layout'
@@ -11,7 +10,6 @@ import RemoveObject from './pages/RemoveObject'
 import ReviewResume from './pages/ReviewResume'
 import Community from './pages/Community'
 import { SignInButton, SignedIn, SignedOut, UserButton, useAuth } from '@clerk/clerk-react'
-import { useEffect } from 'react'
 import {Toaster} from "react-hot-toast"
 
 const App = () => {
@@ -20,6 +18,8 @@ const App = () => {
   // useEffect(()=>{
   //   getToken().then((token)=>console.log(token));
   // }, [])
+
+
   return (
     <>
     <Toaster/>

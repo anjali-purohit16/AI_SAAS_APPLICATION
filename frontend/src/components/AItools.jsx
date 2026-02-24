@@ -9,7 +9,7 @@ const AItools = () => {
   const {user}=useUser()
 
   return (
-    <div className='px-4 sm:px-20 xl:px-32 bg-linear-to-b from-[#000000] to-[#333232ae] py-20'>
+    <div  id="aitools" className='px-4 sm:px-20 xl:px-32 bg-linear-to-b from-[#000000] to-[#333232ae] py-20'>
     <div className='text-center'>
     <h2 className='text-white text-[55px] font-semibold'>Powerful AI Tools</h2>
     <p className='text-yellow-400 text-[22px] max-w-lg mx-auto'>

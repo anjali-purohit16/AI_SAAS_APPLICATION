@@ -4,9 +4,13 @@ import { clerkClient } from "@clerk/express";
 import axios from "axios";
 import { GoogleGenAI } from "@google/genai";
 import { v2 as cloudinary } from "cloudinary";
+import Groq from "groq-sdk";
 import fs from "fs";
-// import pdf from 'pdf-parse/lib/pdf-parse.js';
-import { PDFParse } from "pdf-parse";
+import pdf from "pdf-parse/lib/pdf-parse.js";
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
 
 const AI = new OpenAI({
     apiKey: process.env.GEMINI_API_KEY,
@@ -154,38 +158,6 @@ Return output strictly in this JSON format:
 };
 
 
-// export const generateImage = async (req, res) => {
-//     try {
-//         const { userId } = req.auth();
-//         const {prompt, publish} = req.body;
-//         const plan = req.plan;
-
-//         if (plan !== 'premium') {
-//             return res.json({success: false, message: "This feature is only available for premium sbuscriptions."})
-//         }
-
-//         const formData = new FormData()
-//         formData.append('prompt', prompt)
-//         const {data} = await axios.post("https://clipdrop-api.co/text-to-image/v1", formData, {
-//             headers: {'x-api-key': process.env.CLIPDROP_API_KEY,},
-//             responseType: "arraybuffer",
-//         } )
-
-//         const base64Image = `data:image/png;base64,${Buffer.from(data, 'binary').toString('base64')}`;
-
-//         const {secure_url} = await cloudinary.uploader.upload(base64Image)
-
-//         await sql` INSERT INTO creations (user_id, prompt, content, type, publish)
-//         VALUES (${userId}, ${prompt}, ${secure_url}, 'image', ${publish ?? false})`;
-
-//         res.json({success: true,content: secure_url})
-
-//     } catch (error) {
-//         console.log(error.message)
-//         res.json({success: false, message: error.message})
-        
-//     }
-// }
 
 export const generateImage = async (req, res) => {
     try {
@@ -219,7 +191,6 @@ export const generateImage = async (req, res) => {
         
     }
 }
-
 
 
 export const removeImageBackground = async (req, res) => {
@@ -302,76 +273,88 @@ export const removeImageObject = async (req, res) => {
     }
 }
 
-
 export const reviewResume = async (req, res) => {
-    try {
+  try {
+    const userId = req.userId;
+    const resume = req.file;
+    const plan = req.plan;
 
-        const userId = req.userId;
-        const resume = req.file;
-        const plan = req.plan;
-
-        // Check file received
-        if (!resume) {
-            return res.json({
-                success: false,
-                message: "Resume file not received"
-            });
-        }
-
-        // Check plan
-        if (plan !== "premium") {
-            return res.json({
-                success: false,
-                message: "This feature is only available for premium subscriptions."
-            });
-        }
-
-        // File size check
-        if (resume.size > 5 * 1024 * 1024) {
-            return res.json({
-                success: false,
-                message: "Resume file size exceeds allowed size (5MB)."
-            });
-        }
-
-        // Read PDF
-        const dataBuffer = fs.readFileSync(resume.path);
-        const parser = new PDFParse({
-         data: dataBuffer
-        });
-        const result = await parser.getText();
-        await parser.destroy(); // VERY IMPORTANT (memory cleanup)
-
-        const prompt = `Review the following resume and provide constructive feedback:${result.text}`;
-
-        // AI CALL
-        const response = await AI.chat.completions.create({
-          model: "gemini-2.0-flash",
-          messages: [{ role: "user", content: prompt }]
-        });
-
-        const content = response.choices[0].message.content;
-
-        // Save in DB
-        await sql`
-            INSERT INTO creations (user_id, prompt, content, type)
-            VALUES (${userId}, 'Review the uploaded resume', ${content}, 'resume-review')
-        `;
-
-        res.json({
-            success: true,
-            content
-        });
-
-    } catch (error) {
-
-        console.log("FULL ERROR:", error);
-
-        res.json({
-            success: false,
-            message: error.message
-        });
-
+    if (!resume) {
+      return res.json({
+        success: false,
+        message: "Resume file not received",
+      });
     }
+
+    if (plan !== "premium") {
+      return res.json({
+        success: false,
+        message: "Premium feature only",
+      });
+    }
+
+    if (resume.size > 5 * 1024 * 1024) {
+      return res.json({
+        success: false,
+        message: "Resume exceeds 5MB limit",
+      });
+    }
+
+    // ✅ PDF TEXT EXTRACTION
+    const dataBuffer = fs.readFileSync(resume.path);
+    const result = await pdf(dataBuffer);
+
+    const prompt = `
+You are an expert ATS Resume Reviewer.
+
+Analyze the resume and provide:
+1. Overall Score (/10)
+2. Strengths
+3. Weaknesses
+4. Missing Keywords
+5. Formatting Suggestions
+6. ATS Optimization Tips
+7. Final Improvements
+
+Resume:
+${result.text}
+`;
+
+    // ✅ GROQ CALL
+    const completion = await groq.chat.completions.create({
+      model: "llama-3.3-70b-versatile",
+      messages: [{ role: "user", content: prompt }],
+    });
+
+    const content =
+      completion.choices[0]?.message?.content || "No response";
+
+    // ✅ SAVE RESULT
+    await sql`
+      INSERT INTO creations (user_id, prompt, content, type)
+      VALUES (${userId}, 'Review the uploaded resume', ${content}, 'resume-review')
+    `;
+
+    // ✅ DELETE FILE (best-effort)
+    try {
+      fs.unlinkSync(resume.path);
+    } catch (unlinkError) {
+      console.error("Failed to delete resume file:", unlinkError);
+    }
+
+    res.json({
+      success: true,
+      content,
+    });
+  } catch (error) {
+    console.log("FULL ERROR:", error);
+
+    res.json({
+      success: false,
+      message: error.message,
+    });
+  }
 };
+
+
 

@@ -17,13 +17,20 @@ const Hero = () => {
           
       </div>
       <div className='flex flex-wrap justify-center gap-4 max-sm:text-xs'>
-        <button onClick={()=>navigate('/ai')}className='bg-primary text-white text-xl px-10   bg-red-900 py-3 rounded-lg active:scale-95 transition cursor-pointer'>
+        <button onClick={()=>navigate('/ai')} className='bg-primary text-white text-xl px-10   bg-red-900 py-3 rounded-lg active:scale-95 transition cursor-pointer'>
           Start creating now</button>
-        <button  className=' text-white px-10 py-5 rounded-lg border text-xl border-gray-500 hover:scale-105 active:scale-95 transition cursor-pointer'>
+        <button
+          onClick={() => {
+            const element = document.getElementById("aitools");
+            if (element) {
+              element.scrollIntoView({ behavior: "smooth" });
+            }
+          }}
+          className=' text-white px-10 py-5 rounded-lg border text-xl border-gray-500 hover:scale-105 active:scale-95 transition cursor-pointer'>
           Watch demo</button>
       </div>
       <div className='flex items-center gap-4 mt-8 mx-auto text-xl text-gray-600'>
-        <img src={assets.user_group} alt="" className='h-8'/>Trusted by 10k+ people
+        <img src={assets.user_group} alt="" className='h-8'/>Trusted by 1k+ people
       </div>
     </div>
   )
